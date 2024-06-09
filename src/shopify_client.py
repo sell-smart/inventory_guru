@@ -51,7 +51,10 @@ class ShopifyStoreClient():
         url = f"{self.base_url}{call_path}"
         request_func = REQUEST_METHODS[method]
         headers['X-Shopify-Access-Token'] = self.access_token
+        #logging.basicConfig(level=logging.DEBUG)
+
         try:
+            logging.debug(f"request_func('{url}', params={params}, json={payload}, headers={headers})")
             response = request_func(url, params=params, json=payload, headers=headers)
             response.raise_for_status()
             logging.debug(f"authenticated_shopify_call response:\n{json.dumps(response.json(), indent=4)}")
@@ -150,7 +153,17 @@ class ShopifyStoreClient():
             return None
         return recurring_application_charge_activation_response['recurring_application_charge']
 
-    def create_webook(self, address: str, topic: str) -> dict:
+    def create_webook(self, address: str, topic: str, overwrite = False) -> dict:
+
+        # remove webhook first if it already exists and is different, otherwise (if it exists and is the same), quit
+        if overwrite:
+            existing_webhooks = self.get_existing_webhooks(topic=topic)
+            if len(existing_webhooks) > 0:
+                if existing_webhooks[0]['address'] != address:
+                    self.remove_webhooks(topic=topic)
+                else:
+                    return
+
         call_path = f'webhooks.json'
         method = 'POST'
         payload = {
@@ -172,3 +185,22 @@ class ShopifyStoreClient():
         if not webhook_count_response:
             return None
         return webhook_count_response['count']
+
+    def get_existing_webhooks(self, topic = None):
+        webhooks = self.authenticated_shopify_call('webhooks.json', 'GET')
+        if not topic:
+            return webhooks['webhooks'] 
+        
+        relevant_webhooks = []
+        for webhook in webhooks['webhooks']:
+            if webhook['topic'] == topic:
+                relevant_webhooks.append( webhook )
+        return relevant_webhooks
+    
+    def remove_webhooks(self, topic: str):
+        existing_webhooks = self.get_existing_webhooks(topic)
+        if existing_webhooks:
+            for webhook in existing_webhooks:
+                self.authenticated_shopify_call(f'webhooks/{webhook["id"]}.json', 'DEL')
+                logging.info(f"Removed webhook with ID: {webhook['id']} and topic: {topic}")
+
