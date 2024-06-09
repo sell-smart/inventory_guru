@@ -24,9 +24,9 @@ def generate_install_redirect_url(shop: str, scopes: List, nonce: str, access_mo
     return redirect_url
 
 
-def generate_post_install_redirect_url(shop: str):
-    redirect_url = f"https://{shop}/admin/apps/{APP_NAME}"
-    return redirect_url
+#def generate_post_install_redirect_url(shop: str):
+#    redirect_url = f"https://{shop}/admin/apps/{APP_NAME}"
+#    return redirect_url
 
 
 def verify_web_call(f):

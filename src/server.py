@@ -22,7 +22,7 @@ ACCESS_TOKEN = None
 NONCE = None
 ACCESS_MODE = []  # Defaults to offline access mode if left blank or omitted. https://shopify.dev/apps/auth/oauth/access-modes
 SCOPES = ['write_script_tags', "read_products", "read_orders"] #, "read_all_orders"] #]  # https://shopify.dev/docs/admin-api/access-scopes
-
+app_slug = "127152619521"
 
 @app.route('/app_launched', methods=['GET'])
 @helpers.verify_web_call
@@ -31,7 +31,7 @@ def app_launched():
     global ACCESS_TOKEN, NONCE
 
     if ACCESS_TOKEN:
-        return render_template('welcome.html', shop=shop)
+        return render_template('welcome.html', shop=shop, api_key=os.environ.get('SHOPIFY_API_KEY'))
 
     # The NONCE is a single-use random value we send to Shopify so we know the next call from Shopify is valid (see #app_installed)
     #   https://en.wikipedia.org/wiki/Cryptographic_nonce
@@ -63,7 +63,8 @@ def app_installed():
     shopify_client = ShopifyStoreClient(shop=shop, access_token=ACCESS_TOKEN)
     shopify_client.create_webook(address=WEBHOOK_APP_UNINSTALL_URL, topic="app/uninstalled", overwrite=True)
 
-    redirect_url = helpers.generate_post_install_redirect_url(shop=shop)
+    #redirect_url = helpers.generate_post_install_redirect_url(shop=shop)
+    redirect_url = f"https://{shop}/admin/apps/{app_slug}"
     return redirect(redirect_url, code=302)
 
 

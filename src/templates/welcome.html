@@ -1,7 +1,19 @@
-<!doctype html>
-<title>Welcome to my Shopify app!</title>
-{% if shop %}
-  <h1>Hello {{ shop }}!</h1>
-{% else %}
-  <h1>Hello, World!</h1>
-{% endif %}
+<head>
+  <title>Shopify App</title>
+  <script src="https://unpkg.com/@shopify/app-bridge@2"></script>
+  <script>
+      document.addEventListener('DOMContentLoaded', function () {
+          var AppBridge = window['app-bridge'];
+          var createApp = AppBridge.default;
+          var actions = AppBridge.actions;
+          var Redirect = actions.Redirect;
+
+          var app = createApp({
+              apiKey: '{{ api_key }}',
+              shopOrigin: '{{ shop }}'
+          });
+
+          const redirect = Redirect.create(app);
+      });
+  </script>
+</head>
