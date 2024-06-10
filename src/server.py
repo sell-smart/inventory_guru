@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 load_dotenv()
 WEBHOOK_APP_UNINSTALL_URL = os.environ.get('WEBHOOK_APP_UNINSTALL_URL')
 print('webhook', WEBHOOK_APP_UNINSTALL_URL)
+APP_NAME = os.environ.get('APP_NAME')
 
 
 app = Flask(__name__)
@@ -21,7 +22,7 @@ app = Flask(__name__)
 ACCESS_TOKEN = None
 NONCE = None
 ACCESS_MODE = []  # Defaults to offline access mode if left blank or omitted. https://shopify.dev/apps/auth/oauth/access-modes
-SCOPES = ['write_script_tags', "read_products", "read_orders"] #, "read_all_orders"] #]  # https://shopify.dev/docs/admin-api/access-scopes
+SCOPES = ['write_script_tags', "read_products", "read_orders", "read_all_orders"] #]  # https://shopify.dev/docs/admin-api/access-scopes
 app_slug = "127152619521"
 
 @app.route('/app_launched', methods=['GET'])
@@ -64,8 +65,9 @@ def app_installed():
     shopify_client.create_webook(address=WEBHOOK_APP_UNINSTALL_URL, topic="app/uninstalled", overwrite=True)
 
     #redirect_url = helpers.generate_post_install_redirect_url(shop=shop)
-    redirect_url = f"https://{shop}/admin/apps/{app_slug}"
+    redirect_url = f"https://{shop}/admin/apps/{APP_NAME}"
     return redirect(redirect_url, code=302)
+
 
 
 @app.route('/app_uninstalled', methods=['POST'])
@@ -90,6 +92,21 @@ def data_removal_request():
     # https://shopify.dev/tutorials/add-gdpr-webhooks-to-your-app
     # Clear all personal information you may have stored about the specified shop
     return "OK"
+
+
+@app.route('/products', methods=['GET'])
+def products():
+    shop = request.args.get('shop')
+    shopify_client = ShopifyStoreClient(shop=shop, access_token=ACCESS_TOKEN)
+    products = shopify_client.get_products()
+    return render_template('products.html', products=products)
+
+@app.route('/variants', methods=['GET'])
+def variants():
+    shop = request.args.get('shop')
+    shopify_client = ShopifyStoreClient(shop=shop, access_token=ACCESS_TOKEN)
+    variants = shopify_client.get_product_variants()
+    return render_template('variants.html', variants=variants)
 
 
 if __name__ == '__main__':

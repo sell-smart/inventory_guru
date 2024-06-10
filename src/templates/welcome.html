@@ -1,19 +1,31 @@
+<!DOCTYPE html>
+<html>
 <head>
-  <title>Shopify App</title>
-  <script src="https://unpkg.com/@shopify/app-bridge@2"></script>
-  <script>
-      document.addEventListener('DOMContentLoaded', function () {
-          var AppBridge = window['app-bridge'];
-          var createApp = AppBridge.default;
-          var actions = AppBridge.actions;
-          var Redirect = actions.Redirect;
+    <title>Shopify App</title>
+    <script src="https://unpkg.com/@shopify/app-bridge@2"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var AppBridge = window['app-bridge'];
+            var createApp = AppBridge.default;
+            var actions = AppBridge.actions;
+            var Redirect = actions.Redirect;
 
-          var app = createApp({
-              apiKey: '{{ api_key }}',
-              shopOrigin: '{{ shop }}'
-          });
+            var app = createApp({
+                apiKey: '{{ api_key }}',
+                shopOrigin: '{{ shop }}'
+            });
 
-          const redirect = Redirect.create(app);
-      });
-  </script>
+            const redirect = Redirect.create(app);
+        });
+    </script>
 </head>
+<body>
+    <h1>Welcome to your Shopify App</h1>
+    <nav>
+        <ul style="list-style-type: none; padding: 0; display: flex; justify-content: flex-start; gap: 20px;">
+            <li><a href="/products?shop={{ shop }}">Products</a></li>
+            <li><a href="/variants?shop={{ shop }}">Variants</a></li>
+        </ul>
+    </nav>    
+</body>
+</html>

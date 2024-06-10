@@ -26,10 +26,15 @@ REQUEST_METHODS = {
 
 class ShopifyStoreClient():
 
-    def __init__(self, shop: str, access_token: str):
+    def __init__(self, shop, access_token):
         self.shop = shop
         self.base_url = f"https://{shop}/admin/api/{SHOPIFY_API_VERSION}/"
         self.access_token = access_token
+        self.session = requests.Session()
+        self.session.headers.update({
+            'X-Shopify-Access-Token': self.access_token,
+            'Content-Type': 'application/json'
+        })
 
     @staticmethod
     def authenticate(shop: str, code: str) -> str:
@@ -204,3 +209,27 @@ class ShopifyStoreClient():
                 self.authenticated_shopify_call(f'webhooks/{webhook["id"]}.json', 'DEL')
                 logging.info(f"Removed webhook with ID: {webhook['id']} and topic: {topic}")
 
+    def get_products(self):
+        response = self.session.get(f"https://{self.shop}/admin/api/2021-04/products.json")
+        response.raise_for_status()
+        products = response.json().get('products', [])
+        for product in products:
+            product['price'] = product['variants'][0]['price']  # Example
+            product['cost'] = product['variants'][0].get('cost', 'N/A')  # Example
+        return products
+
+    def get_product_variants(self):
+        response = self.session.get(f"{self.base_url}products.json")
+        response.raise_for_status()
+        products = response.json().get('products', [])
+        variants = []
+        for product in products:
+            for variant in product['variants']:
+                variant_info = {
+                    'product_name': product['title'],
+                    'variant_name': variant['title'],
+                    'price': variant['price'],
+                    'cost': variant.get('cost', 'N/A')
+                }
+                variants.append(variant_info)
+        return variants
