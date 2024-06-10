@@ -29,11 +29,16 @@ app_slug = "127152619521"
 @helpers.verify_web_call
 def app_launched():
     shop = request.args.get('shop')
+    embedded = request.args.get('embedded', '0')
     global ACCESS_TOKEN, NONCE
 
     if ACCESS_TOKEN:
-        return render_template('welcome.html', shop=shop, api_key=os.environ.get('SHOPIFY_API_KEY'))
-
+        if embedded == '1':
+            return render_template('welcome.html', shop=shop, api_key=os.environ.get('SHOPIFY_API_KEY'))
+        else:
+            embedded_url = helpers.generate_app_redirect_url(shop=shop)
+            return redirect(embedded_url, code=302)
+    
     # The NONCE is a single-use random value we send to Shopify so we know the next call from Shopify is valid (see #app_installed)
     #   https://en.wikipedia.org/wiki/Cryptographic_nonce
     NONCE = uuid.uuid4().hex
@@ -64,8 +69,7 @@ def app_installed():
     shopify_client = ShopifyStoreClient(shop=shop, access_token=ACCESS_TOKEN)
     shopify_client.create_webook(address=WEBHOOK_APP_UNINSTALL_URL, topic="app/uninstalled", overwrite=True)
 
-    #redirect_url = helpers.generate_post_install_redirect_url(shop=shop)
-    redirect_url = f"https://{shop}/admin/apps/{APP_NAME}"
+    redirect_url = helpers.generate_app_redirect_url(shop=shop)
     return redirect(redirect_url, code=302)
 
 
@@ -99,14 +103,14 @@ def products():
     shop = request.args.get('shop')
     shopify_client = ShopifyStoreClient(shop=shop, access_token=ACCESS_TOKEN)
     products = shopify_client.get_products()
-    return render_template('products.html', products=products)
+    return render_template('products.html', products=products, shop=shop, api_key=os.environ.get('SHOPIFY_API_KEY'))
 
 @app.route('/variants', methods=['GET'])
 def variants():
     shop = request.args.get('shop')
     shopify_client = ShopifyStoreClient(shop=shop, access_token=ACCESS_TOKEN)
     variants = shopify_client.get_product_variants()
-    return render_template('variants.html', variants=variants)
+    return render_template('variants.html', variants=variants, shop=shop, api_key=os.environ.get('SHOPIFY_API_KEY'))
 
 
 if __name__ == '__main__':

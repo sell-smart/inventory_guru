@@ -1,29 +1,25 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Variants</title>
-</head>
-<body>
-    <h1>Product Variants</h1>
-    <table>
-        <thead>
-            <tr>
-                <th>Product Name</th>
-                <th>Variant Name</th>
-                <th>Price</th>
-                <th>Cost</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for variant in variants %}
-            <tr>
-                <td>{{ variant.product_name }}</td>
-                <td>{{ variant.variant_name }}</td>
-                <td>{{ variant.price }}</td>
-                <td>{{ variant.cost }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</body>
-</html>
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Product Variants</h1>
+<table>
+    <thead>
+        <tr>
+            <th>Product Name</th>
+            <th>Variant Name</th>
+            <th>Price</th>
+            <th>Cost</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for variant in variants %}
+        <tr>
+            <td>{{ variant.product_name }}</td>
+            <td>{{ variant.variant_name }}</td>
+            <td>{{ variant.price }}</td>
+            <td>{{ variant.cost }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
