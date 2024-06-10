@@ -25,6 +25,7 @@ ACCESS_MODE = []  # Defaults to offline access mode if left blank or omitted. ht
 SCOPES = ['write_script_tags', "read_products", "read_orders", "read_all_orders"] #]  # https://shopify.dev/docs/admin-api/access-scopes
 app_slug = "127152619521"
 
+
 @app.route('/app_launched', methods=['GET'])
 @helpers.verify_web_call
 def app_launched():
@@ -97,6 +98,10 @@ def data_removal_request():
     # Clear all personal information you may have stored about the specified shop
     return "OK"
 
+@app.route('/home', methods=['GET'])
+def home():
+    shop = request.args.get('shop')
+    return render_template('home.html', products=[], shop=shop, api_key=os.environ.get('SHOPIFY_API_KEY'))
 
 @app.route('/products', methods=['GET'])
 def products():
