@@ -138,8 +138,8 @@ def products():
 @app.route('/variants', methods=['GET'])
 def variants():
     shop = request.args.get('shop')
-    shopify_client = ShopifyStoreClient(shop=shop, access_token=ACCESS_TOKEN)
-    variants = shopify_client.fetch_all_variants()
+    client = ShopifyStoreClient(shop=shop, access_token=ACCESS_TOKEN)
+    variants = client.fetch_variants()
     return render_template('variants.html', variants=variants, shop=shop, api_key=SHOPIFY_API_KEY)
 
 if __name__ == '__main__':

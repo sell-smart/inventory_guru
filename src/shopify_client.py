@@ -112,7 +112,7 @@ class ShopifyGraphQLClient:
         return data
 
 
-    def fetch_products(self, query):
+    def fetch_bulk_operation_data(self, query):
         try:
             logging.info("Executing GraphQL query for bulk operation.")
             initiate_response = self.execute_graphql_query(query)
@@ -259,8 +259,6 @@ class ShopifyStoreClient(ShopifyGraphQLClient):
             return None
     
     def remove_webhooks(self, topic: str):
-        self.activate_session()  # Ensure the session is activated
-
         try:
             existing_webhooks = self.get_existing_webhooks(topic)
             if existing_webhooks:
@@ -303,4 +301,51 @@ class ShopifyStoreClient(ShopifyGraphQLClient):
           }
         }
         """
-        return self.fetch_products(query)
+        products = self.fetch_bulk_operation_data(query)
+        for i in range(len(products)):
+            products[i]['id'] = products[i]['id'][22:] 
+        return products
+
+    def fetch_variants(self):
+        query = """
+        mutation {
+        bulkOperationRunQuery(
+            query: \"""
+            {
+            productVariants {
+                edges {
+                node {
+                    id
+                    title
+                    product {
+                    id
+                    title
+                    }
+                }
+                }
+            }
+            }
+            \"""
+        ) {
+            bulkOperation {
+            id
+            status
+            }
+            userErrors {
+            field
+            message
+            }
+        }
+        }
+        """
+        variants = self.fetch_bulk_operation_data(query)
+        variants_clean = []
+        for variant in variants:
+            variants_clean.append( {
+                    'variant_id': variant['id'][29:],
+                    'variant_title': variant['title'],
+                    'product_id': variant['product']['id'][22:],
+                    'product_title': variant['product']['title']
+            })
+
+        return variants_clean

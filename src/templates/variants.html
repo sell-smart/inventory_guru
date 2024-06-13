@@ -5,19 +5,19 @@
 <table>
     <thead>
         <tr>
+            <th>Product ID</th>
             <th>Product Name</th>
+            <th>Variant ID</th>
             <th>Variant Name</th>
-            <th>Price</th>
-            <th>Cost</th>
         </tr>
     </thead>
     <tbody>
         {% for variant in variants %}
         <tr>
-            <td>{{ variant.product_name }}</td>
-            <td>{{ variant.variant_name }}</td>
-            <td>{{ variant.price }}</td>
-            <td>{{ variant.cost }}</td>
+            <td>{{ variant.product_id }}</td>
+            <td>{{ variant.product_title }}</td>
+            <td>{{ variant.variant_id }}</td>
+            <td>{{ variant.variant_title }}</td>
         </tr>
         {% endfor %}
     </tbody>
