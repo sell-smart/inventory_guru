@@ -6,15 +6,19 @@ import logging
 from flask import Flask, redirect, request, render_template, jsonify
 import shopify
 import helpers
-import time
 from shopify_client import ShopifyStoreClient
 
 from dotenv import load_dotenv
 
 load_dotenv()
-WEBHOOK_APP_UNINSTALL_URL = os.environ.get('WEBHOOK_APP_UNINSTALL_URL')
-print('webhook', WEBHOOK_APP_UNINSTALL_URL)
+
+SHOPIFY_API_KEY = os.environ.get('SHOPIFY_API_KEY')
 APP_NAME = os.environ.get('APP_NAME')
+
+WEBHOOK_APP_UNINSTALL_URL = os.environ.get('WEBHOOK_APP_UNINSTALL_URL')
+WEBHOOK_QUERY_FINISHED_URL = os.environ.get('WEBHOOK_QUERY_FINISHED_URL')
+print('webhook 1', WEBHOOK_APP_UNINSTALL_URL)
+print('webhook 2', WEBHOOK_QUERY_FINISHED_URL)
 
 
 app = Flask(__name__)
@@ -36,7 +40,7 @@ def app_launched():
 
     if ACCESS_TOKEN:
         if embedded == '1':
-            return render_template('welcome.html', shop=shop, api_key=os.environ.get('SHOPIFY_API_KEY'))
+            return render_template('welcome.html', shop=shop, api_key=SHOPIFY_API_KEY)
         else:
             embedded_url = helpers.generate_app_redirect_url(shop=shop)
             return redirect(embedded_url, code=302)
@@ -69,7 +73,12 @@ def app_installed():
     # We have an access token! Now let's register a webhook so Shopify will notify us if/when the app gets uninstalled
     # NOTE This webhook will call the #app_uninstalled function defined below
     shopify_client = ShopifyStoreClient(shop=shop, access_token=ACCESS_TOKEN)
-    shopify_client.create_webook(address=WEBHOOK_APP_UNINSTALL_URL, topic="app/uninstalled", overwrite=True)
+
+    webhook_app_uninstall_url = f"{WEBHOOK_APP_UNINSTALL_URL}?shop={shop}"
+    shopify_client.create_webook(address=webhook_app_uninstall_url, topic="app/uninstalled", overwrite=True)
+
+    webhook_query_finished_url = f"{WEBHOOK_QUERY_FINISHED_URL}?shop={shop}"
+    shopify_client.create_webook(address=webhook_query_finished_url, topic="bulk_operations/finish", overwrite=True)
 
     redirect_url = helpers.generate_app_redirect_url(shop=shop)
     return redirect(redirect_url, code=302)
@@ -99,44 +108,32 @@ def data_removal_request():
     # Clear all personal information you may have stored about the specified shop
     return "OK"
 
+@app.route('/query_finished', methods=['POST'])
+def query_finished():
+    print("--- query_finished ---")
+    shop = request.args.get('shop')
+    client = ShopifyStoreClient(shop=shop, access_token=ACCESS_TOKEN)
+    client.data_notification_push()
+    return "Webhook received", 200
+
 @app.route('/home', methods=['GET'])
 def home():
     shop = request.args.get('shop')
-    return render_template('home.html', products=[], shop=shop, api_key=os.environ.get('SHOPIFY_API_KEY'))
+    return render_template('home.html', products=[], shop=shop, api_key=SHOPIFY_API_KEY)
 
 @app.route('/products', methods=['GET'])
 def products():
     shop = request.args.get('shop')
     client = ShopifyStoreClient(shop=shop, access_token=ACCESS_TOKEN)
-    
-    initiate_response = client.initiate_bulk_product_download()
-    if 'errors' in initiate_response:
-        # return jsonify(initiate_response['errors'])
-        raise initiate_response['errors']
-
-    # Polling mechanism for demonstration (replace with webhook handling in production)
-    while True:
-        status_response = client.check_bulk_operation_status()
-        status = status_response['data']['currentBulkOperation']['status']
-        if status == 'COMPLETED':
-            download_url = status_response['data']['currentBulkOperation']['url']
-            products = client.fetch_bulk_operation_data(download_url)
-            # return jsonify(products_data)
-            break
-        elif status == 'FAILED':
-            # return jsonify({'error': 'Bulk operation failed'})
-            raise 'Bulk operation failed'
-        time.sleep(2)  # Wait before checking the status again
-
-    #products = []
-    return render_template('products.html', products=products, shop=shop, api_key=os.environ.get('SHOPIFY_API_KEY'))
+    products = client.fetch_products()
+    return render_template('products.html', products=products, shop=shop, api_key=SHOPIFY_API_KEY)
 
 @app.route('/variants', methods=['GET'])
 def variants():
     shop = request.args.get('shop')
     shopify_client = ShopifyStoreClient(shop=shop, access_token=ACCESS_TOKEN)
     variants = shopify_client.fetch_all_variants()
-    return render_template('variants.html', variants=variants, shop=shop, api_key=os.environ.get('SHOPIFY_API_KEY'))
+    return render_template('variants.html', variants=variants, shop=shop, api_key=SHOPIFY_API_KEY)
 
 if __name__ == '__main__':
     # Bind to PORT if defined, otherwise default to 5000.
