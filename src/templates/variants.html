@@ -2,24 +2,40 @@
 
 {% block content %}
 <h1>Product Variants</h1>
-<table>
-    <thead>
-        <tr>
-            <th>Product ID</th>
-            <th>Product Name</th>
-            <th>Variant ID</th>
-            <th>Variant Name</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for variant in variants %}
-        <tr>
-            <td>{{ variant.product_id }}</td>
-            <td>{{ variant.product_title }}</td>
-            <td>{{ variant.variant_id }}</td>
-            <td>{{ variant.variant_title }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+<div style="width: 90%; margin: auto;">
+    <table id="variants-table" class="display" style="width:100%">
+        <thead>
+            <tr>
+                <th>Product ID</th>
+                <th>Product Name</th>
+                <th>Variant ID</th>
+                <th>Variant Name</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for variant in variants %}
+            <tr>
+                <td>{{ variant.product_id }}</td>
+                <td>{{ variant.product_title }}</td>
+                <td>{{ variant.variant_id }}</td>
+                <td>{{ variant.variant_title }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+<script>
+    $(document).ready(function() {
+        $('#variants-table').DataTable({
+            "autoWidth": false,
+            "searching": false,
+            "lengthChange": false,
+            "pageLength": 50,
+            "scrollX": true,
+            "columnDefs": [
+                { "targets": "_all", "width": "auto" }
+            ]
+        });
+    });
+</script>
 {% endblock %}
