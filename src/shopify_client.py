@@ -99,18 +99,45 @@ class ShopifyGraphQLClient:
         """
         return self.execute_graphql_query(query)
 
-    def fetch_bulk_operation_data(self, url):
+    def _read_bulk_operation_data(self, url):
         response = requests.get(url, stream=True)
         response.raise_for_status()  # Raise an error for bad status codes
 
         # Read the response line by line and parse each line as JSON
-        data = [json.loads(line) for line in response.iter_lines() if line]
-        #data = []
-        #for line in response.iter_lines():
-        #    if line:
-        #        data.append(json.loads(line))
+        data = []
+        for line in response.iter_lines():
+            if line:
+                data.append(json.loads(line))
 
         return data
+
+
+    def fetch_products(self, query):
+        try:
+            logging.info("Executing GraphQL query for bulk operation.")
+            initiate_response = self.execute_graphql_query(query)
+            
+            if 'errors' in initiate_response:
+                logging.error(f"GraphQL query errors: {initiate_response['errors']}")
+                raise Exception(initiate_response['errors'])
+
+            logging.info("Waiting for data notification.")
+            data_notification = self.data_notification_pop()
+
+            # to-do: add error-handling
+            download_url = data_notification['data']['currentBulkOperation']['url']
+            logging.info(f"Fetching data from bulk operation download URL: {download_url}")
+
+            data = self._read_bulk_operation_data(download_url)
+            logging.info("Bulk operation data fetched successfully.")
+
+            return data
+        
+        except Exception as ex:
+            logging.exception("An error occurred during the bulk operation process.")
+            raise ex
+
+
 
     def data_notification_pop(self):
         self.data_ready_event.wait()
@@ -139,6 +166,7 @@ class ShopifyStoreClient(ShopifyGraphQLClient):
             response = requests.post(url, json=payload)
             response.raise_for_status()
             return response.json()['access_token']
+
         except HTTPError as ex:
             logging.exception(ex)
             return None
@@ -159,76 +187,28 @@ class ShopifyStoreClient(ShopifyGraphQLClient):
             logging.exception(ex)
             return None
 
-    def get_shop(self) -> dict:
-        call_path = 'shop.json'
-        method = 'GET'
-        shop_response = self.authenticated_shopify_call(call_path=call_path, method=method)
-        if not shop_response:
-            return None
-        # The myshopify_domain value is the one we'll need to listen to via webhooks to determine an uninstall
-        return shop_response['shop']
-
-    def get_script_tags(self) -> List:
-        script_tags_response = self.authenticated_shopify_call('script_tags.json', 'GET')
-        if not script_tags_response:
-            return None
-        return script_tags_response['script_tags']
-
-    def get_script_tag(self, id: int) -> dict:
-        script_tag_response = self.authenticated_shopify_call(f'script_tags/{id}.json', 'GET')
-        if not script_tag_response:
-            return None
-        return script_tag_response['script_tag']
-
-    def update_script_tag(self, id: int, src: str, display_scope: str = None) -> bool:
-        payload = {"script_tag": {"id": id, "src": src}}
-        if display_scope:
-            payload['script_tag']['display_scope'] = display_scope
-        script_tags_response = self.authenticated_shopify_call(f'script_tags/{id}.json', 'PUT', payload)
-        if not script_tags_response:
-            return None
-        return script_tags_response['script_tag']
-
-    def create_script_tag(self, src: str, event: str = 'onload', display_scope: str = None) -> int:
-        payload = {'script_tag': {'event': event, 'src': src}}
-        if display_scope:
-            payload['script_tag']['display_scope'] = display_scope
-        script_tag_response = self.authenticated_shopify_call('script_tags.json', 'POST', payload)
-        if not script_tag_response:
-            return None
-        return script_tag_response['script_tag']
-
-    def delete_script_tag(self, script_tag_id: int) -> int:
-        script_tag_response = self.authenticated_shopify_call(f'script_tags/{script_tag_id}.json', 'DEL')
-        if script_tag_response is None:
-            return False
-        return True
-
-    def create_usage_charge(self, recurring_application_charge_id: int, description: str, price: float) -> dict:
-        payload = {'usage_charge': {'description': description, 'price': price}}
-        usage_charge_response = self.authenticated_shopify_call(f'recurring_application_charges/{recurring_application_charge_id}/usage_charges.json', 'POST', payload)
-        if not usage_charge_response:
-            return None
-        return usage_charge_response['usage_charge']
-
-    def get_recurring_application_charges(self) -> List:
-        recurring_application_charges_response = self.authenticated_shopify_call('recurring_application_charges.json', 'GET')
-        if not recurring_application_charges_response:
-            return None
-        return recurring_application_charges_response['recurring_application_charges']
-
-    def delete_recurring_application_charges(self, recurring_application_charge_id: int) -> bool:
-        # Broken currently,authenticated_shopify_call expects JSON but this returns nothing
-        delete_recurring_application_charge_response = self.authenticated_shopify_call(f'recurring_application_charges/{recurring_application_charge_id}.json', 'DEL')
-        if delete_recurring_application_charge_response is None:
-            return False
-        return True
-
-    def activate_recurring_application_charge(self, recurring_application_charge_id: int) -> dict:
-        recurring_application_charge_activation_response = self.authenticated_shopify_call(f'recurring_application_charges/{recurring_application_charge_id}/activate.json', 'POST', {})
-        if not recurring_application_charge_activation_response:
-            return None
-        return recurring_application_charge_activation_response['recurring_application_charge']
+    #def create_webook(self, address: str, topic: str, overwrite = False) -> dict:
+    #
+    #    # remove webhook first if it already exists and is different, otherwise (if it exists and is the same), quit
+    #    if overwrite:
+    #        existing_webhooks = self.get_existing_webhooks(topic=topic)
+    #        if len(existing_webhooks) > 0:
+    #            if existing_webhooks[0]['address'] != address:
+    #                self.remove_webhooks(topic=topic)
+    #            else:
+    #                return
+    #
+    #    payload = {
+    #        "webhook": {
+    #            "topic": topic,
+    #            "address": address,
+    #            "format": "json"
+    #        }
+    #    }
+    #    webhook_response = self.authenticated_shopify_call('webhooks.json', method='POST', payload=payload)
+    #    if not webhook_response:
+    #        return None
+    #    return webhook_response['webhook']
 
     def create_webook(self, address: str, topic: str, overwrite = False) -> dict:
 
@@ -241,41 +221,59 @@ class ShopifyStoreClient(ShopifyGraphQLClient):
                 else:
                     return
 
-        payload = {
-            "webhook": {
-                "topic": topic,
-                "address": address,
-                "format": "json"
-            }
-        }
-        webhook_response = self.authenticated_shopify_call('webhooks.json', method='POST', payload=payload)
-        if not webhook_response:
+        webhook = shopify.Webhook()
+        webhook.topic = topic
+        webhook.address = address
+        webhook.format = "json"
+        
+        try:
+            if webhook.save():
+                return webhook.attributes
+            else:
+                logging.error(f"Failed to create webhook: {webhook.errors.full_messages()}")
+                return None
+        except Exception as ex:
+            logging.exception(ex)
             return None
-        return webhook_response['webhook']
 
     def get_webhooks_count(self, topic: str):
-        webhook_count_response = self.authenticated_shopify_call(f'webhooks/count.json?topic={topic}', 'GET')
-        if not webhook_count_response:
+        try:
+            webhooks_count = shopify.Webhook.count(topic=topic)
+            return webhooks_count
+        except Exception as ex:
+            logging.exception(ex)
             return None
-        return webhook_count_response['count']
 
     def get_existing_webhooks(self, topic = None):
-        webhooks = self.authenticated_shopify_call('webhooks.json', 'GET')
-        if not topic:
-            return webhooks['webhooks'] 
+        try:
+            webhooks_it = shopify.Webhook.find()
+            webhooks = [webhook.attributes for webhook in webhooks_it]
+            if not topic:
+                return webhooks
+
+            relevant_webhooks = [webhook for webhook in webhooks if webhook['topic'] == topic]
+            return relevant_webhooks
         
-        relevant_webhooks = []
-        for webhook in webhooks['webhooks']:
-            if webhook['topic'] == topic:
-                relevant_webhooks.append( webhook )
-        return relevant_webhooks
+        except Exception as ex:
+            logging.exception(ex)
+            return None
     
     def remove_webhooks(self, topic: str):
-        existing_webhooks = self.get_existing_webhooks(topic)
-        if existing_webhooks:
-            for webhook in existing_webhooks:
-                self.authenticated_shopify_call(f'webhooks/{webhook["id"]}.json', 'DEL')
-                logging.info(f"Removed webhook with ID: {webhook['id']} and topic: {topic}")
+        self.activate_session()  # Ensure the session is activated
+
+        try:
+            existing_webhooks = self.get_existing_webhooks(topic)
+            if existing_webhooks:
+                for webhook in existing_webhooks:
+                    webhook_id = webhook["id"]
+                    webhook_obj = shopify.Webhook.find(webhook_id)
+                    if webhook_obj.destroy():
+                        logging.info(f"Removed webhook with ID: {webhook_id} and topic: {topic}")
+                    else:
+                        logging.error(f"Failed to remove webhook with ID: {webhook_id} and topic: {topic}")
+
+        except Exception as ex:
+            logging.exception(ex)
 
     def fetch_products(self):
         query = """
@@ -305,39 +303,4 @@ class ShopifyStoreClient(ShopifyGraphQLClient):
           }
         }
         """
-        initiate_response = self.execute_graphql_query(query)
-    
-        if 'errors' in initiate_response:
-            # return jsonify(initiate_response['errors'])
-            raise initiate_response['errors']
-
-        incoming_data = self.data_notification_pop()
-        print( incoming_data )
-
-        # to-do: add error-handling
-        download_url = incoming_data['data']['currentBulkOperation']['url']
-        products = self.fetch_bulk_operation_data(download_url)
-
-        return products
-    
-
-        raise "XXX"
-    
-        # self.fetch_bulk_operation_data(self.bulk_data_url)
-
-        # Polling mechanism for demonstration (replace with webhook handling in production)
-        while True:
-            status_response = self.check_bulk_operation_status()
-            status = status_response['data']['currentBulkOperation']['status']
-            if status == 'COMPLETED':
-                download_url = status_response['data']['currentBulkOperation']['url']
-                products = self.fetch_bulk_operation_data(download_url)
-                # return jsonify(products_data)
-                break
-            elif status == 'FAILED':
-                # return jsonify({'error': 'Bulk operation failed'})
-                raise 'Bulk operation failed'
-            time.sleep(2)  # Wait before checking the status again
-
-        return products
-
+        return self.fetch_products(query)

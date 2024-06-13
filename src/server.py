@@ -39,6 +39,13 @@ def app_launched():
     global ACCESS_TOKEN, NONCE
 
     if ACCESS_TOKEN:
+
+        ###
+        shopify_client = ShopifyStoreClient(shop=shop, access_token=ACCESS_TOKEN)
+        webhook_app_uninstall_url = f"{WEBHOOK_APP_UNINSTALL_URL}?shop={shop}"
+        shopify_client.create_webook(address=webhook_app_uninstall_url, topic="app/uninstalled", overwrite=True)
+        ###
+
         if embedded == '1':
             return render_template('welcome.html', shop=shop, api_key=SHOPIFY_API_KEY)
         else:
