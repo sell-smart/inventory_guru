@@ -7,14 +7,13 @@ import requests
 from requests.exceptions import HTTPError
 
 from dotenv import load_dotenv
+import shopify
 
 load_dotenv()
 
 SHOPIFY_SECRET = os.environ.get('SHOPIFY_SECRET')
 SHOPIFY_API_KEY = os.environ.get('SHOPIFY_API_KEY')
-
-
-SHOPIFY_API_VERSION = "2020-01"
+SHOPIFY_API_VERSION = os.environ.get('SHOPIFY_API_VERSION')
 
 REQUEST_METHODS = {
     "GET": requests.get,
@@ -24,17 +23,95 @@ REQUEST_METHODS = {
 }
 
 
-class ShopifyStoreClient():
-
+class ShopifyGraphQLClient:
     def __init__(self, shop, access_token):
         self.shop = shop
-        self.base_url = f"https://{shop}/admin/api/{SHOPIFY_API_VERSION}/"
         self.access_token = access_token
-        self.session = requests.Session()
-        self.session.headers.update({
-            'X-Shopify-Access-Token': self.access_token,
-            'Content-Type': 'application/json'
-        })
+        self.graphql_url = f"https://{self.shop}/admin/api/2021-04/graphql.json"
+
+        self.session = shopify.Session(
+            shop_url=f"{shop}.myshopify.com", 
+            version=SHOPIFY_API_VERSION, 
+            token=access_token
+        )
+        shopify.ShopifyResource.activate_session( self.session )
+
+        # requests.Session
+        # session.headers.update({
+        #     'X-Shopify-Access-Token': self.access_token,
+        #     'Content-Type': 'application/json'
+        # })
+
+    def execute_query(self, query):
+        response = shopify.GraphQL().execute(query)
+        return json.loads(response)
+
+    def initiate_bulk_product_download(self):
+        query = """
+        mutation {
+          bulkOperationRunQuery(
+            query: \"\"\"
+            {
+              products {
+                edges {
+                  node {
+                    id
+                    title
+                  }
+                }
+              }
+            }
+            \"\"\"
+          ) {
+            bulkOperation {
+              id
+              status
+            }
+            userErrors {
+              field
+              message
+            }
+          }
+        }
+        """
+        return self.execute_query(query)
+
+    def check_bulk_operation_status(self):
+        query = """
+        {
+          currentBulkOperation {
+            id
+            status
+            errorCode
+            createdAt
+            completedAt
+            objectCount
+            fileSize
+            url
+            partialDataUrl
+          }
+        }
+        """
+        return self.execute_query(query)
+
+    def fetch_bulk_operation_data(self, url):
+        response = requests.get(url, stream=True)
+        response.raise_for_status()  # Raise an error for bad status codes
+
+        # Read the response line by line and parse each line as JSON
+        data = []
+        for line in response.iter_lines():
+            if line:
+                data.append(json.loads(line))
+
+        return data
+
+
+class ShopifyStoreClient(ShopifyGraphQLClient):
+
+    def __init__(self, shop, access_token):
+        super().__init__(shop, access_token)
+        self.base_url = f"https://{shop}/admin/api/{SHOPIFY_API_VERSION}/"
 
     @staticmethod
     def authenticate(shop: str, code: str) -> str:
@@ -209,27 +286,4 @@ class ShopifyStoreClient():
                 self.authenticated_shopify_call(f'webhooks/{webhook["id"]}.json', 'DEL')
                 logging.info(f"Removed webhook with ID: {webhook['id']} and topic: {topic}")
 
-    def get_products(self):
-        response = self.session.get(f"https://{self.shop}/admin/api/2021-04/products.json")
-        response.raise_for_status()
-        products = response.json().get('products', [])
-        for product in products:
-            product['price'] = product['variants'][0]['price']  # Example
-            product['cost'] = product['variants'][0].get('cost', 'N/A')  # Example
-        return products
 
-    def get_product_variants(self):
-        response = self.session.get(f"{self.base_url}products.json")
-        response.raise_for_status()
-        products = response.json().get('products', [])
-        variants = []
-        for product in products:
-            for variant in product['variants']:
-                variant_info = {
-                    'product_name': product['title'],
-                    'variant_name': variant['title'],
-                    'price': variant['price'],
-                    'cost': variant.get('cost', 'N/A')
-                }
-                variants.append(variant_info)
-        return variants

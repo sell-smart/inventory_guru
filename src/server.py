@@ -3,9 +3,10 @@ import os
 import json
 import logging
 
-from flask import Flask, redirect, request, render_template
-
+from flask import Flask, redirect, request, render_template, jsonify
+import shopify
 import helpers
+import time
 from shopify_client import ShopifyStoreClient
 
 from dotenv import load_dotenv
@@ -106,17 +107,36 @@ def home():
 @app.route('/products', methods=['GET'])
 def products():
     shop = request.args.get('shop')
-    shopify_client = ShopifyStoreClient(shop=shop, access_token=ACCESS_TOKEN)
-    products = shopify_client.get_products()
+    client = ShopifyStoreClient(shop=shop, access_token=ACCESS_TOKEN)
+    
+    initiate_response = client.initiate_bulk_product_download()
+    if 'errors' in initiate_response:
+        # return jsonify(initiate_response['errors'])
+        raise initiate_response['errors']
+
+    # Polling mechanism for demonstration (replace with webhook handling in production)
+    while True:
+        status_response = client.check_bulk_operation_status()
+        status = status_response['data']['currentBulkOperation']['status']
+        if status == 'COMPLETED':
+            download_url = status_response['data']['currentBulkOperation']['url']
+            products = client.fetch_bulk_operation_data(download_url)
+            # return jsonify(products_data)
+            break
+        elif status == 'FAILED':
+            # return jsonify({'error': 'Bulk operation failed'})
+            raise 'Bulk operation failed'
+        time.sleep(2)  # Wait before checking the status again
+
+    #products = []
     return render_template('products.html', products=products, shop=shop, api_key=os.environ.get('SHOPIFY_API_KEY'))
 
 @app.route('/variants', methods=['GET'])
 def variants():
     shop = request.args.get('shop')
     shopify_client = ShopifyStoreClient(shop=shop, access_token=ACCESS_TOKEN)
-    variants = shopify_client.get_product_variants()
+    variants = shopify_client.fetch_all_variants()
     return render_template('variants.html', variants=variants, shop=shop, api_key=os.environ.get('SHOPIFY_API_KEY'))
-
 
 if __name__ == '__main__':
     # Bind to PORT if defined, otherwise default to 5000.
