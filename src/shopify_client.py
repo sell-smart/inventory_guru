@@ -47,7 +47,7 @@ REQUEST_METHODS = {
 
 def run_orders_ingestion(shop_name, **kwargs):
     flow_run_name = f"<{shop_name}><{kwargs['json_url']}>"
-    run_deployment( name = "orders_ingestion", flow_run_name = flow_run_name, **kwargs )
+    run_deployment( name = "orders_ingestion", flow_run_name = flow_run_name, parameters = kwargs )
 
 def run_product_ingestion(shop_name, **kwargs):
     flow_run_name = f"<{shop_name}><{kwargs['json_url']}>"
