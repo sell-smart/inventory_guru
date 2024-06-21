@@ -9,6 +9,7 @@ import helpers
 from shopify_client import ShopifyStoreClient
 
 from dotenv import load_dotenv
+from pprint import pprint
 
 load_dotenv()
 
@@ -27,8 +28,23 @@ app = Flask(__name__)
 ACCESS_TOKEN = None
 NONCE = None
 ACCESS_MODE = []  # Defaults to offline access mode if left blank or omitted. https://shopify.dev/apps/auth/oauth/access-modes
-SCOPES = ['write_script_tags', "read_products", "read_orders", "read_all_orders"] #]  # https://shopify.dev/docs/admin-api/access-scopes
-app_slug = "127152619521"
+SCOPES = ['write_script_tags', "read_products", "read_orders", "read_all_orders", "read_customers"] #]  # https://shopify.dev/docs/admin-api/access-scopes
+
+
+class DataManager:
+    data = {}
+
+    @staticmethod
+    def get_data(shop, name):
+        return DataManager.data[shop][name]
+
+    @staticmethod
+    def set_data(shop, name, value):
+        if not shop in DataManager.data:
+            DataManager.data[shop] = {}
+        DataManager.data[shop][name] = value
+
+
 
 
 @app.route('/app_launched', methods=['GET'])
@@ -79,13 +95,23 @@ def app_installed():
 
     # We have an access token! Now let's register a webhook so Shopify will notify us if/when the app gets uninstalled
     # NOTE This webhook will call the #app_uninstalled function defined below
-    shopify_client = ShopifyStoreClient(shop=shop, access_token=ACCESS_TOKEN)
+    client = ShopifyStoreClient(shop=shop, access_token=ACCESS_TOKEN)
 
     webhook_app_uninstall_url = f"{WEBHOOK_APP_UNINSTALL_URL}?shop={shop}"
-    shopify_client.create_webook(address=webhook_app_uninstall_url, topic="app/uninstalled", overwrite=True)
+    client.create_webook(address=webhook_app_uninstall_url, topic="app/uninstalled", overwrite=True)
 
     webhook_query_finished_url = f"{WEBHOOK_QUERY_FINISHED_URL}?shop={shop}"
-    shopify_client.create_webook(address=webhook_query_finished_url, topic="bulk_operations/finish", overwrite=True)
+    client.create_webook(address=webhook_query_finished_url, topic="bulk_operations/finish", overwrite=True)
+
+    client.fetch_products()
+    #DataManager.set_data(shop, "products", products)
+
+    client.fetch_variants()
+    #DataManager.set_data(shop, "variants", variants)
+
+    client.fetch_orders()
+    #DataManager.set_data(shop, "orders", orders)
+    #DataManager.set_data(shop, "line_items", line_items)
 
     redirect_url = helpers.generate_app_redirect_url(shop=shop)
     return redirect(redirect_url, code=302)
@@ -132,15 +158,46 @@ def home():
 def products():
     shop = request.args.get('shop')
     client = ShopifyStoreClient(shop=shop, access_token=ACCESS_TOKEN)
-    products = client.fetch_products()
+    products = DataManager.get_data(shop, "products")
+    pprint(products[0])
     return render_template('products.html', products=products, shop=shop, api_key=SHOPIFY_API_KEY)
+
+@app.route('/products2', methods=['GET'])
+def products2():
+    shop = request.args.get('shop')
+    client = ShopifyStoreClient(shop=shop, access_token=ACCESS_TOKEN)
+
+    products = DataManager.get_data(shop, "products")
+    variants = DataManager.get_data(shop, "variants")
+
+    grouped_variants = {}
+    for variant in variants:
+        grouped_variants[ variant['product_id'] ] = variant
+
+    return render_template('products2.html', products=products, grouped_variants=grouped_variants, shop=shop, api_key=SHOPIFY_API_KEY)
 
 @app.route('/variants', methods=['GET'])
 def variants():
     shop = request.args.get('shop')
     client = ShopifyStoreClient(shop=shop, access_token=ACCESS_TOKEN)
-    variants = client.fetch_variants()
+    variants = DataManager.get_data(shop, "variants")
+    pprint(variants[0])
     return render_template('variants.html', variants=variants, shop=shop, api_key=SHOPIFY_API_KEY)
+
+@app.route('/orders', methods=['GET'])
+def orders():
+    shop = request.args.get('shop')
+    client = ShopifyStoreClient(shop=shop, access_token=ACCESS_TOKEN)
+    orders = DataManager.get_data(shop, "orders")
+    return render_template('orders.html', orders=orders, shop=shop, api_key=SHOPIFY_API_KEY)
+
+@app.route('/line_items', methods=['GET'])
+def line_items():
+    shop = request.args.get('shop')
+    client = ShopifyStoreClient(shop=shop, access_token=ACCESS_TOKEN)
+    line_items = DataManager.get_data(shop, "line_items")
+    return render_template('line_items.html', line_items=line_items, shop=shop, api_key=SHOPIFY_API_KEY)
+
 
 if __name__ == '__main__':
     # Bind to PORT if defined, otherwise default to 5000.

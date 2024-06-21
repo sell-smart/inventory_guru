@@ -1,0 +1,82 @@
+<h1>Products with Variants</h1>
+<table id="example" class="display" style="width:100%">
+    <thead>
+        <tr>
+            <th></th>
+            <th>Product ID</th>
+            <th>Product Title</th>
+        </tr>
+    </thead>
+    <tbody>
+        <!-- Example data; replace with server-generated content -->
+        <tr data-product-id="12345">
+            <td class="details-control"></td>
+            <td>12345</td>
+            <td>Product A</td>
+        </tr>
+        <tr data-product-id="67890">
+            <td class="details-control"></td>
+            <td>67890</td>
+            <td>Product B</td>
+        </tr>
+    </tbody>
+</table>
+
+<script>
+    var grouped_variants = {
+        '12345': { variants: [{ id: '101', title: 'Variant A1' }, { id: '102', title: 'Variant A2' }] },
+        '67890': { variants: [{ id: '201', title: 'Variant B1' }, { id: '202', title: 'Variant B2' }] }
+    };
+
+    function format(productId) {
+        var variants = grouped_variants[productId].variants;
+        var details = `
+            <table cellpadding="5" cellspacing="0" border="0" style="padding-left:50px;">
+                <thead>
+                    <tr>
+                        <th>Variant ID</th>
+                        <th>Variant Name</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+        variants.forEach(function(variant) {
+            details += `
+                <tr>
+                    <td>${variant.id}</td>
+                    <td>${variant.title}</td>
+                </tr>`;
+        });
+        details += `
+                </tbody>
+            </table>`;
+        return details;
+    }
+
+    $(document).ready(function() {
+        var table = $('#example').DataTable({
+            "autoWidth": false,
+            "searching": false,
+            "lengthChange": false,
+            "pageLength": 50,
+            "scrollX": true,
+            "columnDefs": [
+                { "targets": [0], "orderable": false },
+                { "targets": "_all", "width": "auto" }
+            ]
+        });
+
+        $('#example tbody').on('click', 'td.details-control', function () {
+            var tr = $(this).closest('tr');
+            var row = table.row(tr);
+            var productId = tr.data('product-id');
+
+            if (row.child.isShown()) {
+                row.child.hide();
+                tr.removeClass('shown');
+            } else {
+                row.child(format(productId)).show();
+                tr.addClass('shown');
+            }
+        });
+    });
+</script>

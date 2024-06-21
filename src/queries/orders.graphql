@@ -1,0 +1,47 @@
+orders {
+edges {
+    node {
+        id
+        createdAt
+        cancelledAt
+        closedAt
+        currencyCode
+        customerLocale
+        totalPrice
+        currentTotalDiscountsSet {
+        shopMoney {
+            amount
+        }
+        }
+        currentTotalPriceSet {
+        shopMoney {
+            amount
+        }
+        }
+        lineItems {
+            edges {
+            node {
+            id
+                product { 
+                    id
+                }
+                variant {
+                    id
+                }
+                quantity
+                originalUnitPriceSet {
+                    shopMoney {
+                        amount
+                    }
+                }
+                discountedUnitPriceSet {
+                    shopMoney {
+                        amount
+                    }
+                }
+            }
+            }
+        }
+    }
+}
+}

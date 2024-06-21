@@ -1,3 +1,4 @@
 flask==1.1.2
 requests==2.23.0
 python-dotenv==0.15.0
+prefect==2.14.16

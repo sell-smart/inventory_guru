@@ -1,0 +1,12 @@
+productVariants {
+    edges {
+        node {
+            id
+            title
+            product {
+                id
+                title
+            }
+        }
+    }
+}

@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Orders</h1>
+<div style="width: 90%; margin: auto;">
+    <table id="orders-table" class="display" style="width:100%">
+        <thead>
+            <tr>
+                <th>Order ID</th>
+                <th>createdAt</th>
+                <th>cancelledAt</th>
+                <th>currencyCode</th>
+                <th>totalPrice</th>
+                <th>currentTotalDiscountsSet</th>
+                <th>currentTotalPriceSet</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for order in orders %}
+            <tr>
+                <td>{{ order.id }}</td>
+                <td>{{ order.createdAt }}</td>
+                <td>{{ order.cancelledAt }}</td>
+                <td>{{ order.currencyCode }}</td>
+                <td>{{ order.totalPrice }}</td>
+                <td>{{ order.currentTotalDiscountsSet.shopMoney.amount }}</td>
+                <td>{{ order.currentTotalPriceSet.shopMoney.amount }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+<script>
+    $(document).ready(function() {
+        $('#orders-table').DataTable({
+            "autoWidth": false,
+            "searching": false,
+            "lengthChange": false,
+            "pageLength": 50,
+            "scrollX": true,
+            "columnDefs": [
+                { "targets": "_all", "width": "auto" }
+            ]
+        });
+    });
+</script>
+{% endblock %}
