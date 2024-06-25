@@ -103,15 +103,15 @@ def app_installed():
     webhook_query_finished_url = f"{WEBHOOK_QUERY_FINISHED_URL}?shop={shop}"
     client.create_webook(address=webhook_query_finished_url, topic="bulk_operations/finish", overwrite=True)
 
+    client.fetch_orders()
+    #DataManager.set_data(shop, "orders", orders)
+    #DataManager.set_data(shop, "line_items", line_items)
+
     client.fetch_products()
     #DataManager.set_data(shop, "products", products)
 
     client.fetch_variants()
     #DataManager.set_data(shop, "variants", variants)
-
-    client.fetch_orders()
-    #DataManager.set_data(shop, "orders", orders)
-    #DataManager.set_data(shop, "line_items", line_items)
 
     redirect_url = helpers.generate_app_redirect_url(shop=shop)
     return redirect(redirect_url, code=302)
@@ -201,5 +201,5 @@ def line_items():
 
 if __name__ == '__main__':
     # Bind to PORT if defined, otherwise default to 5000.
-    port = int(os.environ.get('PORT', 5000))
+    port = int(os.environ.get('APP_PORT', 5000))
     app.run(debug=True, host='0.0.0.0', port=port)

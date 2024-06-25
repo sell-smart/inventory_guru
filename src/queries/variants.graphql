@@ -1,12 +1,37 @@
 productVariants {
-    edges {
-        node {
-            id
-            title
-            product {
-                id
-                title
-            }
-        }
+edges {
+node {
+    id
+    title
+    sku
+    price
+    compareAtPrice
+    availableForSale
+    weight
+    weightUnit
+    selectedOptions {
+        name
+        value
     }
+    image {
+        originalSrc
+        altText
+    }
+    product {
+        id
+        title
+        vendor
+        productType
+        createdAt
+        updatedAt
+        tags
+        description
+        descriptionHtml
+    }
+    inventoryQuantity
+    inventoryPolicy
+    requiresShipping
+    taxCode
+}
+}
 }

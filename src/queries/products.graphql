@@ -1,8 +1,63 @@
 products {
-    edges {
-        node {
-            id
-            title
+edges {
+node {
+    id
+    title
+    description
+    descriptionHtml
+    createdAt
+    updatedAt
+    productType
+    vendor
+    tags
+    priceRange {
+        minVariantPrice {
+            amount
+            currencyCode
+        }
+        maxVariantPrice {
+            amount
+            currencyCode
         }
     }
+    images {
+        edges {
+        node {
+            originalSrc
+            altText
+        }
+        }
+    }
+    variants {
+    edges {
+    node {
+        id
+        title
+        sku
+        price
+        compareAtPrice
+        availableForSale
+        weight
+        weightUnit
+    }
+    }
+    }
+    seo {
+        title
+        description
+    }
+    collections {
+    edges {
+    node {
+                id
+                title
+                descriptionHtml
+    }
+    }
+    }
+    totalInventory
+    onlineStoreUrl
+    status
+}
+}
 }

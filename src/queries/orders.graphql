@@ -1,6 +1,6 @@
 orders {
 edges {
-    node {
+node {
         id
         createdAt
         cancelledAt
@@ -8,40 +8,108 @@ edges {
         currencyCode
         customerLocale
         totalPrice
-        currentTotalDiscountsSet {
-        shopMoney {
-            amount
-        }
-        }
+
+
+        updatedAt
+        processedAt
+        subtotalPrice
+        totalTax
+
+        totalShippingPrice
+        totalDiscounts
+        totalWeight
+
+        tags
+        note
+
         currentTotalPriceSet {
-        shopMoney {
-            amount
+            shopMoney {
+                amount
+                currencyCode
+            }
+            presentmentMoney {
+                amount
+                currencyCode
+            }
         }
+        currentTotalDiscountsSet {
+            shopMoney {
+                amount
+                currencyCode
+            }
+            presentmentMoney {
+                amount
+                currencyCode
+            }
         }
+        currentTotalTaxSet {
+            shopMoney {
+                amount
+                currencyCode
+            }
+            presentmentMoney {
+                amount
+                currencyCode
+            }
+        }
+        currentSubtotalPriceSet {
+            shopMoney {
+                amount
+                currencyCode
+            }
+            presentmentMoney {
+                amount
+                currencyCode
+            }
+        }
+
         lineItems {
-            edges {
-            node {
-            id
+        edges {
+        node {
+                id
+                quantity
+                sku
+                vendor
+
+                fulfillableQuantity
+                fulfillmentStatus
+
                 product { 
                     id
                 }
                 variant {
                     id
                 }
-                quantity
+
                 originalUnitPriceSet {
                     shopMoney {
                         amount
+                        currencyCode
+                    }
+                    presentmentMoney {
+                        amount
+                        currencyCode
                     }
                 }
                 discountedUnitPriceSet {
                     shopMoney {
                         amount
+                        currencyCode
+                    }
+                    presentmentMoney {
+                        amount
+                        currencyCode
                     }
                 }
-            }
-            }
         }
-    }
+        }
+        }
+
+        shippingAddress {
+            provinceCode
+            countryCode
+            city
+        }
+}
 }
 }

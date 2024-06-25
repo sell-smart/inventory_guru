@@ -18,9 +18,11 @@ from pathlib import Path
 
 from prefect.deployments import run_deployment
 
+
+# to-do: check that all the prefect deployments exist 
+
 query_dir = os.path.dirname(os.path.realpath(__file__))
 read_query = lambda fname_query: Path( os.path.join(query_dir, fname_query) ).read_text()
-
 query_fetch_products = read_query("queries/products.graphql")
 query_fetch_variants = read_query("queries/variants.graphql")
 query_fetch_orders = read_query("queries/orders.graphql")
@@ -45,30 +47,35 @@ REQUEST_METHODS = {
 }
 
 
-def run_orders_ingestion(shop_name, **kwargs):
+def run_ingest_orders(shop_name, **kwargs):
     flow_run_name = f"<{shop_name}><{kwargs['json_url']}>"
-    run_deployment( name = "orders_ingestion", flow_run_name = flow_run_name, parameters = kwargs )
+    result = run_deployment( name = "ingest_orders_v0.1/ingest_orders", flow_run_name = flow_run_name, parameters = {'shop_name': shop_name} | kwargs )
+    return result
 
-def run_product_ingestion(shop_name, **kwargs):
+def run_ingest_products(shop_name, **kwargs):
     flow_run_name = f"<{shop_name}><{kwargs['json_url']}>"
-    run_deployment( name = "products_ingestion", flow_run_name = flow_run_name, **kwargs )
+    result = run_deployment( name = "ingest_products_v0.1/ingest_products", flow_run_name = flow_run_name, parameters = {'shop_name': shop_name} | kwargs )
+    return result
 
-def run_variants_ingestion(shop_name, **kwargs):
+def run_ingestion_variants(shop_name, **kwargs):
     flow_run_name = f"<{shop_name}><{kwargs['json_url']}>"
-    run_deployment( name = "variants_ingestion", flow_run_name = flow_run_name, **kwargs )
+    result = run_deployment( name = "ingest_variants_v0.1/ingest_variants", flow_run_name = flow_run_name, parameters = {'shop_name': shop_name} | kwargs )
+    return result
 
 def run_optimization(shop_name, **kwargs):
     flow_run_name = f"<{shop_name}><{kwargs['product_id']}><{kwargs['variant_id']}>"
-    run_deployment( name = "forecast", flow_run_name = flow_run_name, **kwargs )
+    result = run_deployment( name = "forecast_v0.1/forecast", flow_run_name = flow_run_name, parameters = {'shop_name': shop_name} | kwargs )
+    return result
 
 def run_optimization(shop_name, **kwargs):
     flow_run_name = f"<{shop_name}><{kwargs['product_id']}><{kwargs['variant_id']}>"
-    run_deployment( name = "optimization", flow_run_name = flow_run_name, **kwargs )
+    result = run_deployment( name = "optimization_v0.1/optimization", flow_run_name = flow_run_name, parameters = {'shop_name': shop_name} | kwargs )
+    return result
 
 def run_generate_synthetic_sales(shop_name, **kwargs):
     flow_run_name = f"<{shop_name}><{kwargs['product_id']}><{kwargs['variant_id']}>"
-    run_deployment( name = "synthetic_sales", flow_run_name = flow_run_name, **kwargs )
-
+    result = run_deployment( name = "synthetic_sales_v0.1/synthetic_sales", flow_run_name = flow_run_name, parameters = {'shop_name': shop_name} | kwargs )
+    return result
 
 class EventManager:
     events = {}
@@ -162,7 +169,7 @@ class ShopifyGraphQLClient:
             initiate_response = self.execute_graphql_query(query)
             
             query_status = get_in(['data', 'bulkOperationRunQuery', 'bulkOperation', 'status'], initiate_response)
-            if (not query_status) and (not query_status == 'CREATED'):
+            if (not query_status) or (not query_status == 'CREATED'):
                 logging.error(str(initiate_response))
                 raise f"*** GraphQL query failed. ***"
 
@@ -172,9 +179,10 @@ class ShopifyGraphQLClient:
 
                 query_status = get_in(['data', 'currentBulkOperation', 'status'], data_notification)
                 if query_status == "FAILED":
-                    logging.error(f"GraphQL query failure. Error code: {data_notification['errorCode']}")
-                    raise Exception(f"GraphQL query failure. Error code: {data_notification['errorCode']}")
-                
+                    error_code = data_notification['data']['currentBulkOperation']['errorCode']
+                    logging.error(f"GraphQL query failure. Error code: {error_code}")
+                    raise Exception(f"GraphQL query failure. Error code: {error_code}")
+
                 elif query_status == "RUNNING":
                     continue
 
@@ -359,14 +367,14 @@ class ShopifyStoreClient(ShopifyGraphQLClient, WebhookClient):
 
 
     def fetch_products(self):
-        self.fetch_bulk_operation_data(query_fetch_products, run_orders_ingestion)
+        self.fetch_bulk_operation_data(query_fetch_products, run_ingest_products)
         # products = ...
         # for i in range(len(products)):
         #     products[i]['id'] = products[i]['id'][22:] 
         # return products
 
     def fetch_variants(self):
-        self.fetch_bulk_operation_data(query_fetch_variants, run_variant_ingestion)
+        self.fetch_bulk_operation_data(query_fetch_variants, run_ingestion_variants)
         # variants = 
         # variants_clean = []
         # for variant in variants:
@@ -385,7 +393,8 @@ class ShopifyStoreClient(ShopifyGraphQLClient, WebhookClient):
         #for order in orders:
         #    order_list.append( order.to_dict() )
         #
-        self.fetch_bulk_operation_data(query_fetch_orders, run_product_ingestion)
+        query_fetch_orders = read_query("queries/orders.graphql")
+        self.fetch_bulk_operation_data(query_fetch_orders, run_ingest_orders)
         # orders = ...
         # orders_meta = []
         # orders_line_items = []
