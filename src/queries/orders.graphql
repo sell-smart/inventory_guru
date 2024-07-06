@@ -19,9 +19,6 @@ node {
         totalDiscounts
         totalWeight
 
-        tags
-        note
-
         currentTotalPriceSet {
             shopMoney {
                 amount

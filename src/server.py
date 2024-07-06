@@ -28,7 +28,7 @@ app = Flask(__name__)
 ACCESS_TOKEN = None
 NONCE = None
 ACCESS_MODE = []  # Defaults to offline access mode if left blank or omitted. https://shopify.dev/apps/auth/oauth/access-modes
-SCOPES = ['write_script_tags', "read_products", "read_orders", "read_all_orders", "read_customers"] #]  # https://shopify.dev/docs/admin-api/access-scopes
+SCOPES = ['write_script_tags', "read_products", "read_orders", "read_all_orders", "read_customers", "read_inventory"] #]  # https://shopify.dev/docs/admin-api/access-scopes
 
 
 class DataManager:
@@ -103,15 +103,16 @@ def app_installed():
     webhook_query_finished_url = f"{WEBHOOK_QUERY_FINISHED_URL}?shop={shop}"
     client.create_webook(address=webhook_query_finished_url, topic="bulk_operations/finish", overwrite=True)
 
+
+    client.fetch_variants()
+    #DataManager.set_data(shop, "variants", variants)
+
     client.fetch_orders()
     #DataManager.set_data(shop, "orders", orders)
     #DataManager.set_data(shop, "line_items", line_items)
 
     client.fetch_products()
     #DataManager.set_data(shop, "products", products)
-
-    client.fetch_variants()
-    #DataManager.set_data(shop, "variants", variants)
 
     redirect_url = helpers.generate_app_redirect_url(shop=shop)
     return redirect(redirect_url, code=302)

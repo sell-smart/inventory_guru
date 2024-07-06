@@ -20,14 +20,6 @@ node {
             currencyCode
         }
     }
-    images {
-        edges {
-        node {
-            originalSrc
-            altText
-        }
-        }
-    }
     variants {
     edges {
     node {
@@ -41,10 +33,6 @@ node {
         weightUnit
     }
     }
-    }
-    seo {
-        title
-        description
     }
     collections {
     edges {

@@ -13,25 +13,23 @@ node {
         name
         value
     }
-    image {
-        originalSrc
-        altText
-    }
     product {
         id
-        title
-        vendor
-        productType
-        createdAt
-        updatedAt
-        tags
-        description
-        descriptionHtml
     }
     inventoryQuantity
     inventoryPolicy
     requiresShipping
     taxCode
+
+    inventoryItem {
+        id
+        createdAt
+        updatedAt
+        unitCost {
+            amount
+            currencyCode
+        }
+    }
 }
 }
 }
